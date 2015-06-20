@@ -26,10 +26,10 @@ function Mongo:initialize(options)
     options = options or {}
     self.options = options
     _id = _id + 1
-    p ("Init", options)
+    p("[Info] - Create connection.......")
     self.port = options.port or 27017
     self.host = options.host or '127.0.0.1'
-    assert(options.db or options.dbname)
+    assert(options.db or options.dbname, "Should specify a database name.")
     self.db = options.db or options.dbname
     self.requestId = 0
     self.queues = {}
@@ -128,7 +128,6 @@ function Mongo:sendRequest()
         -- Insert Update, and Delete method has no response
         if opcode == "UPDATE" or opcode == "INSERT" or opcode == "DELETE" then
             local requestId = self.queues[1]["requestId"]
-            p(requestId)
             self.callbacks[requestId]()
             table.remove(self.queues, 1)
             self:sendRequest()
@@ -221,7 +220,8 @@ function Mongo:connect()
     local socket
     socket = net.createConnection(self.port, self.host)
     socket:on("connect", function()
-        p("====----", "Connected" ,"----===")
+        p("[Info] - Database is connected.......")
+
         socket:on("data", function(data)
 --            p(data)
             local requestId, cursorId , res, tags = parseData(data)
@@ -241,30 +241,7 @@ function Mongo:connect()
             self:emit("error", err)
         end)
 
-        self:insert("abc", {name = "c", age = 26}, nil, function(res)
-            p("insert", res)
-        end)
-
-        self:findOne("abc", {name = "a"}, {}, nil, nil, function(res)
-            p("findOne", res)
-        end)
-
-        self:find("abc", {}, nil, nil, nil, function(res)
-            p("find", res)
-        end)
-
-        self:remove("abc", {name = "a"}, nil, function()
-            p("Deleted")
-        end)
-
-        self:update("abc", { name = "c"}, {height = "Hello World!"}, true, nil,function()
-            p("update")
-        end)
-
-        self:count("abc", {}, nil, nil, nil, function(res)
-            p("count", res)
-        end)
-
+        self:emit("connect")
     end)
     self.socket = socket
 end
