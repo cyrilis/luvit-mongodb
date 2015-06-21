@@ -13,7 +13,7 @@ m:on("connect", function()
         p("insert", res)
     end)
 
-    m:findOne("abc", {name = "a"}, {}, nil, nil, function(res)
+    m:findOne("abc", {name = "a"}, {}, nil, function(res)
         p("findOne", res)
     end)
 
@@ -29,7 +29,7 @@ m:on("connect", function()
         p("update")
     end)
 
-    m:count("abc", {}, nil, nil, nil, function(res)
+    m:count("abc", {}, function(res)
         p("count", res)
     end)
 end)

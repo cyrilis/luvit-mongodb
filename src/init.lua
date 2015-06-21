@@ -189,7 +189,7 @@ function Mongo:remove(collection, query, singleRemove, callback)
     self:command("DELETE", m, callback)
 end
 
-function Mongo:findOne(collection, query, fields, skip, _,  cb)
+function Mongo:findOne(collection, query, fields, skip,  cb)
     local function callback (res)
         if res and  #res == 1 then
             cb(res[1])
@@ -204,15 +204,11 @@ function Mongo:find(collection, query, fields, skip, limit, callback)
     self:query(collection, query, fields, skip, limit, callback)
 end
 
-function Mongo:count(collection, query, fields, skip, limit, callback)
+function Mongo:count(collection, query, callback)
     local function cb(r)
         callback(#r)
     end
-    q = {
-        {"_order_", "count", collection },
-        {"_order_", "query", query or {}}
-    }
-    self:query(collection, query, fields, skip, limit, cb)
+    self:query(collection, query, nil, nil, nil, cb)
 end
 
 
