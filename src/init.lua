@@ -234,6 +234,7 @@ function Mongo:connect()
         end)
 
         socket:on("error", function(err)
+            p("Error!", err)
             self:emit("error", err)
         end)
 
