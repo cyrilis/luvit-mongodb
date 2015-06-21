@@ -3,7 +3,7 @@
 This is a pure luvit Mongodb driver with async Api. 
 
 ## What is Luvit?
-Luvit is a nodejs like, with Asynchronous I/O support language for Lua. 
+[Luvit](https://luvit.io) is a Node.js like, with Asynchronous I/O support language for Lua.
 
 See more at: [Luvit](https://luvit.io/docs.html)
 
