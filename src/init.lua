@@ -109,7 +109,7 @@ function Mongo:command (opcode, message, callback)
     local requestId = self.requestId + 1
     self.requestId = requestId
     local m = compose_msg(requestId, nil, opcode, message)
-    self:addCallback(requestId, callback)
+    self:addCallback(requestId, callback or function() end)
     self:addQueue(requestId, opcode, m)
 end
 
@@ -128,7 +128,11 @@ function Mongo:sendRequest()
         -- Insert Update, and Delete method has no response
         if opcode == "UPDATE" or opcode == "INSERT" or opcode == "DELETE" then
             local requestId = self.queues[1]["requestId"]
-            self.callbacks[requestId]()
+            if self.callbacks[requestId] then
+                self.callbacks[requestId]()
+            else
+                p("[WARNING] - NO FUNC FOUND!")
+            end
             table.remove(self.queues, 1)
             self:sendRequest()
         end
@@ -217,13 +221,24 @@ function Mongo:connect()
     socket = net.createConnection(self.port, self.host)
     socket:on("connect", function()
         p("[Info] - Database is connected.......")
-
+        self.tempData = ""
         socket:on("data", function(data)
---            p(data)
-            local requestId, cursorId , res, tags = parseData(data)
-            self.callbacks[requestId](res, tags, cursorId)
-            table.remove(self.queues, 1)
-            self:sendRequest()
+            local stringToParse
+            if #self.tempData > 0 then
+                stringToParse = self.tempData .. data
+            else
+                stringToParse = data
+            end
+            local success, requestId, cursorId , res, tags = pcall(parseData, stringToParse)
+            if not success then
+                p("Data not complete yet, save for next round...")
+                self.tempData = stringToParse
+            else
+                self.tempData = ""
+                self.callbacks[requestId](res, tags, cursorId)
+                table.remove(self.queues, 1)
+                self:sendRequest()
+            end
         end)
 
         socket:on('end', function()
