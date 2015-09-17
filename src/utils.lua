@@ -36,7 +36,6 @@ local num_to_le_uint = function ( n , bytes )
     for i=1 , bytes do
         b [ i ] , n = n % 2^8 , floor ( n / 2^8 )
     end
-    assert ( n == 0 )
     return strchar ( unpack ( b ) )
 end
 local num_to_le_int = function ( n , bytes )

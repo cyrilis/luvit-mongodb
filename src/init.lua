@@ -98,18 +98,18 @@ local function parseData ( data )
 end
 
 
-function Mongo:addCallback (id, callback)
+function Mongo:addCallback (id, callback, ids, collection)
     if type(callback) == "function" then
-        self.callbacks[id] = callback
+        self.callbacks[id] = {callback = callback, ids = ids, collection = collection}
     end
 end
 
 
-function Mongo:command (opcode, message, callback)
+function Mongo:command (opcode, message, callback, ids, collection)
     local requestId = self.requestId + 1
     self.requestId = requestId
     local m = compose_msg(requestId, nil, opcode, message)
-    self:addCallback(requestId, callback or function() end)
+    self:addCallback(requestId, callback or function() end, ids, collection)
     self:addQueue(requestId, opcode, m)
 end
 
@@ -128,10 +128,15 @@ function Mongo:sendRequest()
         -- Insert Update, and Delete method has no response
         if opcode == "UPDATE" or opcode == "INSERT" or opcode == "DELETE" then
             local requestId = self.queues[1]["requestId"]
-            if self.callbacks[requestId] then
-                self.callbacks[requestId]()
+            if not self.callbacks[requestId].ids then
+                self.callbacks[requestId].callback()
             else
-                p("[WARNING] - NO FUNC FOUND!")
+--                self.callbacks[requestId].callback()
+                local ids = self.callbacks[requestId].ids
+                local collection = self.callbacks[requestId].collection
+                self:find(collection, {_id = {["$in"] = ids}}, nil , nil, nil, function(result)
+                    self.callbacks[requestId].callback(result)
+                end)
             end
             table.remove(self.queues, 1)
             self:sendRequest()
@@ -166,8 +171,7 @@ end
 function Mongo:update (collection, query, update, upsert, single, callback)
     local flags = 2^0*( upsert and 1 or 0 ) + 2^1*( single and 0 or 1 )
     query = to_bson(query)
-    update = to_bson({["$set"] = update})
-
+    update = to_bson(update)
     local m = "\0\0\0\0" .. getCollectionName ( self , collection ) .. num_to_le_uint ( flags ) .. query .. update
     self:command("UPDATE", m, callback)
 end
@@ -179,11 +183,16 @@ function Mongo:insert (collection, docs, continue, callback)
     assert(#docs >= 1)
     local flags = 2^0*( continue and 1 or 0 )
     local t = {}
+    local ids = {}
     for i , v in ipairs ( docs ) do
+        if not v._id then
+            v._id = ObjectId.new()
+        end
+        table.insert(ids, v._id)
         t [ i ] = to_bson ( v )
     end
     local m = num_to_le_uint ( flags ) .. getCollectionName ( self , collection ) .. table.concat( t )
-    self:command("INSERT", m, callback)
+    self:command("INSERT", m, callback, ids, collection)
 end
 
 function Mongo:remove(collection, query, singleRemove, callback)
@@ -195,7 +204,7 @@ end
 
 function Mongo:findOne(collection, query, fields, skip,  cb)
     local function callback (res)
-        if res and  #res == 1 then
+        if res and  #res >= 1 then
             cb(res[1])
         else
             cb(nil)
@@ -235,7 +244,7 @@ function Mongo:connect()
                 self.tempData = stringToParse
             else
                 self.tempData = ""
-                self.callbacks[requestId](res, tags, cursorId)
+                self.callbacks[requestId].callback(res, tags, cursorId)
                 table.remove(self.queues, 1)
                 self:sendRequest()
             end

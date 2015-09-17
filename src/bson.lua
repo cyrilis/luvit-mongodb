@@ -150,6 +150,7 @@ function to_bson ( ob )
     local onlyarray = true
     local seen_n , high_n = { } , 0
     local onlystring = true
+    local isEmpty = false
     local i = 0
     for k , v in pairs ( ob ) do
         local t_k = type ( k )
@@ -168,15 +169,18 @@ function to_bson ( ob )
         i = i + 1
     end
     -- for empty table, we consider it as array, rather than object
-    if i == 0 then onlystring = false end
-
-    local retarray , m = false
-    if onlystring then -- Do string first so the case of an empty table is done properly
-    local r = { }
-    for k , v in pairs ( ob ) do
-        t_insert ( r , pack ( k , v ) )
+    if i == 0 then
+        onlystring = false
+        isEmpty = true
     end
-    m = t_concat ( r )
+
+    local retarray , m = false, nil
+    if onlystring then -- Do string first so the case of an empty table is done properly
+        local r = { }
+        for k , v in pairs ( ob ) do
+            t_insert ( r , pack ( k , v ) )
+        end
+        m = t_concat ( r )
     elseif onlyarray then
         local r = { }
 
@@ -193,6 +197,9 @@ function to_bson ( ob )
                 if v[2] and v[3] then
                     t_insert(r, pack ( v[2], v[3] ))
                 end
+            end
+            if isEmpty then
+                retarray = true
             end
             m = t_concat(r)
         else
