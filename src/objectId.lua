@@ -39,15 +39,13 @@ else
 end
 machineid = md5.sum ( machineid ):sub ( 1 , 3 )
 
---local pid
---if hasposix then
---    pid = posix.getpid ( ).pid
---else
---    pid = assert ( tonumber ( assert ( io.popen ( "ps -o ppid= -p $$") ):read ( "*a" ) ) )
---end
---pid = num_to_le_uint ( pid , 2 )
-local pid = process.pid
-pid = num_to_le_uint ( pid ,3)
+local pid
+if hasposix then
+    pid = posix.getpid ( ).pid
+else
+    pid = assert ( tonumber ( assert ( io.popen ( "ps -o ppid= -p $$") ):read ( "*a" ) ) )
+end
+pid = num_to_le_uint ( pid , 2 )
 
 local inc = 0
 local function generate_id ()
