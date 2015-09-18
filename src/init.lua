@@ -268,6 +268,9 @@ function Mongo:connect()
 end
 
 Mongo.ObjectId = ObjectId
+Mongo.Bit32 = bson.Bit32
+Mongo.Bit64 = bson.Bit64
+Mongo.Date = bson.Date
 
 module = module or {}
 module.exports = Mongo

@@ -16,6 +16,76 @@ local strformat = string.format
 local strmatch = string.match
 local strbyte = string.byte
 
+local function toLSB(bytes,value)
+    local str = ""
+    for j=1,bytes do
+        str = str .. string.char(value % 256)
+        value = math.floor(value / 256)
+    end
+    return str
+end
+
+local function toLSB32(value) return toLSB(4,value) end
+local function toLSB64(value) return toLSB(8,value) end
+local function to_int32(n,v) return "\016"..n.."\000"..toLSB32(v) end
+local function to_int64(n,v) return "\018"..n.."\000"..toLSB64(v) end
+local function to_date(n,v) return "\09"..n.."\000"..toLSB64(v) end
+
+local bit64_meta = {
+    __tonumber = function(obj)
+        return obj.value
+    end,
+    __tostring = function(obj)
+        return tostring(obj.value)
+    end,
+    __eq = function(a, b)
+        return getmetatable(a) == getmetatable(b) and a.value == b.value
+    end,
+    metatype = "bit64"
+}
+
+local bit32_meta = {
+    __tonumber = function(obj)
+        return obj.value
+    end,
+    __tostring = function(obj)
+        return tostring(obj.value)
+    end,
+    __eq = function(a, b)
+        return getmetatable(a) == getmetatable(b) and a.value == b.value
+    end,
+    metatype = "bit32"
+}
+
+local date_meta = {
+    __tonumber = function(obj)
+        return obj.value
+    end,
+    __tostring = function(obj)
+        return tostring(obj.value)
+    end,
+    eq = function(a, b)
+        return getmetatable(a) == getmetatable(b) and a.value == b.value
+    end,
+    metatype = "date"
+}
+
+function Bit64(value)
+    return setmetatable( {value = value}, bit64_meta)
+end
+
+function Bit32(value)
+    return setmetatable( {value = value}, bit32_meta)
+end
+
+function Date(value)
+    value = tonumber(value)
+    if #tostring(value) < 13 then
+        value = value * 1000
+    end
+    return setmetatable( {value = value}, date_meta)
+end
+
 local ll = require ("./utils")
 local le_uint_to_num = ll.le_uint_to_num
 local le_int_to_num = ll.le_int_to_num
@@ -69,7 +139,7 @@ local function read_document ( get , numerical )
             error ( f:byte ( ) )
         end
         elseif op == "\9" then -- unix time
-        v = le_uint_to_num ( get ( 8 ) , 1 , 8 )
+        v = le_uint_to_num ( get ( 8 ) , 1 , 8 ) / 1000
         elseif op == "\10" then -- Null
         v = nil
         elseif op == "\16" then --int32
@@ -120,7 +190,23 @@ local function pack ( k , v )
     local mt = getmetatable ( v )
 
     if ot == "number" then
-        return "\1" .. k .. "\0" .. to_double ( v )
+        if v * 2 == v then
+            if v == math.huge then
+                return "\001"..k.."\000\000\000\000\000\000\000\240\127"
+            elseif v == -math.huge then
+                return "\001"..k.."\000\000\000\000\000\000\000\240\255"
+            else
+                return "\001"..k.."\000\001\000\000\000\000\000\240\127"
+            end
+        end
+        if math.floor(v) ~= v then
+            return "\1" .. k .. "\0" .. to_double(v)
+        elseif v > 2147483647 or v < -2147483648 then
+            return to_int64(k,v)
+        else
+            return to_int32(k,v)
+        end
+
     elseif ot == "nil" then
         return "\10" .. k .. "\0"
     elseif ot == "string" then
@@ -133,6 +219,12 @@ local function pack ( k , v )
         end
     elseif mt == object_id_mt then
         return "\7" .. k .. "\0" .. v.id
+    elseif mt == bit32_meta then
+        return to_int32(k,v.value)
+    elseif mt == bit64_meta then
+        return to_int64(k,v.value)
+    elseif mt == date_meta then
+        return to_date(k, v.value)
     elseif ot == "table" then
         local doc , array = to_bson ( v )
         if array then
@@ -229,6 +321,9 @@ end
 return {
     from_bson = from_bson ;
     to_bson = to_bson ;
+    Bit32 = Bit32;
+    Bit64 = Bit64;
+    Date = Date;
 }
 
 
