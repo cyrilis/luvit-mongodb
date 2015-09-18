@@ -132,17 +132,12 @@ See files in "test/" Folder
 If you have any issue while use this library please let me know. thanks.
 
 ## TODO:
-[x] Bit64 support
-
-[x] Bit32 support
-
-[x] Date type support
-
-[ ] Cursor
-
-[ ] Raw Command support
-
-[ ] Write concern
+- [x] Bit64 support
+- [x] Bit32 support
+- [x] Date type support
+- [ ] Cursor
+- [ ] Raw Command support
+- [ ] Write concern
 
 ## MIT
 The MIT License (MIT)
