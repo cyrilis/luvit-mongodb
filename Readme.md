@@ -13,53 +13,136 @@ See more at: [Luvit](https://luvit.io/docs.html)
     
 - #### With Npm
 	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project. 
+
+## initialize
+
+```lua
+local Mongo = require("path/to/luvit-mongo")
+local db = Mongo:new({db = "DATABASE_NAME"})
+db:on("connect", function()
+	-- Do stuff here.
+    -- db:find("xxx", {}, nil, nil, nil, function(res)p(res)end)
+end)
+```
+
+## Method
+
+- ###insert:
+	`db:insert(collection, document, continue, callback)`
+	- `collection`: Database collection name, **required**
+	- `document`: lua table, **required**
+    - `continue`: if continue when error occured
+    - `callback`: function, with inserted document as #1 parameter
+    
+- ###find:
+	`db:find(collection, query, fields, skip, limit, callback)`
+    - `collection`: Database collection name, **required**
+    - `query`: mongodb query eg: `{ type: { $in: [ 'food', 'snacks' ] } }` or just `{ type: "snacks" }`, **required**
+    - `fields`: limit field for return, eg: `{ item: 1, qty: 1, _id:0 }` 
+    - `skip`: skip counts, *int*
+    - `limit`: limit return counts, *int*
+    - `callback`: function, with found documents array as #1 parameter
+
+- ###update: 
+	`db:update(collection, query, update, upsert, single, callback)`
+	- `collection`: Database collection name, **required**
+    - `query`: mongodb query eg: `{ type: { $in: [ 'food', 'snacks' ] } }` or just `{ type: "snacks" }`, **required**
+    - `update`: mongodb update, eg: `{ $set: { "detail": "14Q2" } }`, **required**
+    - `upsert`: if not find result with `query` params, insert a record with `update` params.
+    - `single`: update multiple records or single record, **boolean**.
+    - `callback`: function, without parameters
+    
+- ###remove 
+	`(collection, query, single, callback)`
+	- `collection`: Database collection name, **required**
+    - `query`: mongodb query eg: `{ type: { $in: [ 'food', 'snacks' ] } }` or just `{ type: "snacks" }`, **required**
+    - `single`: remove multiple records or single, **boolean**.
+	- `callback`: function, without parameters
+
+- ###count
+	`(collection, query, callback)`
+	- `collection`: Database collection name, **required**
+    - `query`: mongodb query eg: `{ type: { $in: [ 'food', 'snacks' ] } }` or just `{ type: "snacks" }`, **required**
+	- `callback`: function, without parameters
+    
+- ###findOne:
+	`db:find(collection, query, fields, skip, callback)`
+    - `collection`: Database collection name, **required**
+    - `query`: mongodb query eg: `{ type: { $in: [ 'food', 'snacks' ] } }` or just `{ type: "snacks" }`, **required**
+    - `fields`: limit field for return, eg: `{ item: 1, qty: 1, _id:0 }` 
+    - `skip`: skip counts, *int*
+    - `callback`: function, without found document as #1 parameter
     
 ## Usage
 ```lua
-Mongo = require("./path/to/luvit-mongodb")
+
+local Mongo = require("path/to/luvit-mongo")
+local Bit64 = Mongo.Bit64
+local Bit32 = Mongo.Bit32
+local Date = Mongo.Date
+local ObjectId = Mongo.ObjectId
 
 m = Mongo:new({db = "test"})
 
 m:on("connect", function()
-
-	local continueWithErr = true
-    local collection = "test"
-    
-    m:insert(collection, {name = "c", age = 26}, continueWithErr, function(res)
-        p("insert", res)
+    m:insert("abc", {name = "a", age = 2}, nil, function(res)
+        local _id = res[1]._id
+        m:find("abc", {_id = res[1]._id}, nil, nil, nil, function(res)
+            if assert(#res == 1, "Should be 1") then
+                p("Insert Pass!")
+            end
+            m:update("abc", {_id = _id}, {["$set"] = {height = "Hello World!"}}, true, nil,function()
+                m:find("abc", {_id = _id}, nil, nil, nil, function(res)
+                    if assert(res[1].height == "Hello World!", "Update faied") then
+                        p("Update Passed!!!")
+                        m:remove("abc", {_id = _id}, nil, function()
+                            p("Deleted")
+                            m:count("abc", {_id = _id}, function(res)
+                                if assert(res == 0, "Should be 0") then
+                                    p("Remove and count pass!")
+                                end
+                            end)
+                        end)
+                    end
+                end)
+            end)
+        end)
     end)
 
-	return returnField = {}
-    skip = 0
-    limit = 10
-    m:findOne("test", {name = "a"}, returnField, skip, function(res)
-        p("findOne", res)
+    m:insert("abc", {
+        _id = ObjectId.new(),
+        long = Bit64(123.2),
+        int = Bit32(23840.3),
+        time = Date(os.time()),
+        longTime = Bit64(os.time() * 1000),
+        float = 123.4
+    }, nil, function(result)
+        print("Result:")
+        p(result)
     end)
 
-    m:find("test", query, returnField, skip, limit, function(res)
-        p("find", res)
-    end)
-
-	local singleRemove = false
-    m:remove("test", {name = "a"}, singleRemove, function()
-        p("Deleted")
-    end)
-
-	local upsert = false
-    local singleUpdate = false
-    m:update("test", { name = "c"}, {height = "Hello World!"}, upsert, singleUpdate ,function()
-        p("update")
-    end)
-
-    m:count("test", query, function(res)
-        p("count", res)
-    end)
 end)
+
 
 ```
 
 ## Test and example
 See files in "test/" Folder
+
+If you have any issue while use this library please let me know. thanks.
+
+## TODO:
+[x] Bit64 support
+
+[x] Bit32 support
+
+[x] Date type support
+
+[ ] Cursor
+
+[ ] Raw Command support
+
+[ ] Write concern
 
 ## MIT
 The MIT License (MIT)

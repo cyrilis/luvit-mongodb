@@ -4,41 +4,50 @@
 -- Email: houshoushuai@gmail.com
 --
 
-Mongo = require("../")
-Bit64 = Mongo.Bit64
-Bit32 = Mongo.Bit32
-Date = Mongo.Date
+local Mongo = require("../")
+local Bit64 = Mongo.Bit64
+local Bit32 = Mongo.Bit32
+local Date = Mongo.Date
+local ObjectId = Mongo.ObjectId
 
 m = Mongo:new({db = "test"})
 
 m:on("connect", function()
-    m:insert("abc", {name = "c", age = 26}, nil, function(res)
-        p("insert", res)
+    m:insert("abc", {name = "a", age = 2}, nil, function(res)
+        local _id = res[1]._id
+        m:find("abc", {_id = res[1]._id}, nil, nil, nil, function(res)
+            if assert(#res == 1, "Should be 1") then
+                p("Insert Pass!")
+            end
+            m:update("abc", {_id = _id}, {["$set"] = {height = "Hello World!"}}, true, nil,function()
+                m:find("abc", {_id = _id}, nil, nil, nil, function(res)
+                    if assert(res[1].height == "Hello World!", "Update faied") then
+                        p("Update Passed!!!")
+                        m:remove("abc", {_id = _id}, nil, function()
+                            p("Deleted")
+                            m:count("abc", {_id = _id}, function(res)
+                                if assert(res == 0, "Should be 0") then
+                                    p("Remove and count pass!")
+                                end
+                            end)
+                        end)
+                    end
+                end)
+            end)
+        end)
     end)
 
-    m:insert("abc", {long = Bit64(123.2), longTime = Bit64(os.time() * 1000), int = Bit32(23840.3), time = Date(os.time()*1000 + 197), float = 123.4}, nil, function(result)
+    m:insert("abc", {
+        _id = ObjectId.new(),
+        long = Bit64(123.2),
+        int = Bit32(23840.3),
+        time = Date(os.time()),
+        longTime = Bit64(os.time() * 1000),
+        float = 123.4
+    }, nil, function(result)
         print("Result:")
         p(result)
     end)
 
-    m:findOne("abc", {name = "a"}, {}, nil, function(res)
-        p("findOne", res)
-    end)
-
-    m:find("abc", {}, nil, nil, nil, function(res)
-        p("find", res)
-    end)
-
-    m:remove("abc", {name = "a"}, nil, function()
-        p("Deleted")
-    end)
-
-    m:update("abc", { name = "c"}, {["$set"] = {height = "Hello World!"}}, true, nil,function()
-        p("update")
-    end)
-
-    m:count("abc", {}, function(res)
-        p("count", res)
-    end)
 end)
 
