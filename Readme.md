@@ -8,16 +8,20 @@ This is a pure luvit Mongodb driver with async Api.
 See more at: [Luvit](https://luvit.io/docs.html)
 
 ## Install
+
+- #### With [lit](https://luvit.io/lit.html)
+    Run `lit install cyrilis/luvit-mongodb` in terminal under your project path, and then `require("luvit-mongodb")` in your project.
+
 - #### Copy Source File
 	Just put source file in your project, then require it with `./path/to/luvit-mongodb`
     
 - #### With Npm
-	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project. 
+	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.
 
 ## initialize
 
 ```lua
-local Mongo = require("path/to/luvit-mongo")
+local Mongo = require("luvit-mongodb")
 local db = Mongo:new({db = "DATABASE_NAME"})
 db:on("connect", function()
 	-- Do stuff here.
