@@ -9,13 +9,17 @@ See more at: [Luvit](https://luvit.io/docs.html)
 
 ## Install
 
-- #### With [lit](https://luvit.io/lit.html)
-    Run `lit install cyrilis/luvit-mongodb` in terminal under your project path, and then `require("luvit-mongodb")` in your project.
+- #### With [lit](https://luvit.io/lit.html):
+    Run 
+    ```bash
+    lit install cyrilis/luvit-mongodb
+    ``` 
+in terminal under your project path, then `require("luvit-mongodb")` in your project.
 
-- #### Copy Source File
+- #### Or copy source files:
 	Just put source file in your project, then require it with `./path/to/luvit-mongodb`
     
-- #### With Npm
+- #### Or with NPM:
 	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.
 
 ## initialize
