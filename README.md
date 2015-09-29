@@ -22,7 +22,7 @@ in terminal under your project path, then `require("luvit-mongodb")` in your pro
 - #### Or with NPM:
 	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.
 
-## initialize
+## Initialize
 
 ```lua
 local Mongo = require("luvit-mongodb")
