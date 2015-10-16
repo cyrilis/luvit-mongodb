@@ -238,15 +238,15 @@ function Mongo:connect()
             else
                 stringToParse = data
             end
-            local success, requestId, cursorId , res, tags = pcall(parseData, stringToParse)
-            if not success then
-                p("Data not complete yet, save for next round...")
-                self.tempData = stringToParse
-            else
+            local docLength =  read_msg_header(stringToParse)
+            if docLength == #stringToParse then
+                local requestId, cursorId , res, tags = parseData(stringToParse)
                 self.tempData = ""
                 self.callbacks[requestId].callback(res, tags, cursorId)
                 table.remove(self.queues, 1)
                 self:sendRequest()
+            else
+                self.tempData = stringToParse
             end
         end)
 
