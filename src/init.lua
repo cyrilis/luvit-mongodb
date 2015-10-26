@@ -221,6 +221,32 @@ function Mongo:count(collection, query, callback)
     self:query(collection, query, nil, nil, nil, cb)
 end
 
+function Mongo:_onData(data)
+    local stringToParse = ""
+    if #self.tempData > 0 then
+        stringToParse = self.tempData .. data
+    else
+        stringToParse = data
+    end
+
+    local docLength = parseMsgHeader(stringToParse)
+    if docLength == #stringToParse then
+        local reqId, cursorId, res, tags = parseData(stringToParse)
+        self.tempData = ""
+        self.queues[reqId].callback(res, tags, cursorId)
+        self.queues[reqId] = nil
+    elseif docLength > #stringToParse then
+        self.tempData = stringToParse
+    elseif docLength < #stringToParse then
+        local stringToParseSub = stringToParse:sub(1, docLength)
+        local reqId, cursorId, res, tags = parseData(stringToParseSub)
+        self.queues[reqId].callback(res, tags, cursorId)
+        self.queues[reqId] = nil
+        self.tempData = stringToParse:sub(docLength + 1)
+        self:_onData("")
+    end
+end
+
 function Mongo:connect()
     local socket
     socket = net.createConnection(self.port, self.host)
@@ -228,29 +254,7 @@ function Mongo:connect()
         p("[Info] - Database is connected.......")
         self.tempData = ""
         socket:on("data", function(data)
-            local stringToParse = ""
-            if #self.tempData > 0 then
-                stringToParse = self.tempData .. data
-            else
-                stringToParse = data
-            end
-            local docLength =  parseMsgHeader(stringToParse)
-            if #stringToParse > docLength then
-                local parseDataStr = stringToParse:sub(0,docLength)
-                self.tempData = stringToParse:sub(docLength)
-                local requestId, cursorId , res, tags = parseData(parseDataStr)
-                p(requestId)
-                self.queues[requestId].callback(res, tags, cursorId)
-                self.queues[requestId] = nil
-            end
-            if docLength == #stringToParse then
-                local requestId, cursorId , res, tags = parseData(stringToParse)
-                self.tempData = ""
-                self.queues[requestId].callback(res, tags, cursorId)
-                self.queues[requestId] = nil
-            else
-                self.tempData = stringToParse
-            end
+            self:_onData(data)
         end)
 
         socket:on('end', function()
