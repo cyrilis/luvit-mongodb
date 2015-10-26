@@ -1,5 +1,7 @@
 #Luvit MongoDB Driver
 
+[![Join the chat at https://gitter.im/cyrilis/luvit-mongodb](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cyrilis/luvit-mongodb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This is a pure luvit Mongodb driver with async Api. 
 
 ## What is Luvit?
