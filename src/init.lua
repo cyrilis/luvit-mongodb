@@ -48,11 +48,12 @@ local opcodes = {
     KILL_CURSORS = 2007 ;
 }
 
-local function compose_msg (requestId ,reponseTo , opcode , message )
-    local requestID = num_to_le_uint(requestId)
-    reponseTo = reponseTo or "\255\255\255\255"
-    opcode = num_to_le_uint ( assert ( opcodes [ opcode ] ) )
-    return num_to_le_uint ( #message + 16 ) .. requestID .. reponseTo .. opcode .. message
+
+local function composeMessage (reqId, resId, opcode, message)
+    local reqId = num_to_le_uint(reqId)
+    resId = resId or "\255\255\255\255"
+    opcode = num_to_le_uint( assert( opcodes[opcode] ) )
+    return num_to_le_uint (#message + 16 ) .. reqId .. resId .. opcode .. message
 end
 
 local function getCollectionName (self, collection)
@@ -60,28 +61,25 @@ local function getCollectionName (self, collection)
     return  db .. "." .. collection .. "\0"
 end
 
-local function read_msg_header ( data )
-    local header = assert ( get_from_string ( data )(16) )
-    local length = le_uint_to_num ( header , 1 , 4 )
-    local requestID = le_uint_to_num ( header , 5 , 8 )
-    local reponseTo = le_uint_to_num ( header , 9 , 12 )
-    local opcode = le_uint_to_num ( header , 13 , 16 )
-    return length , requestID , reponseTo , opcode
+
+local function parseMsgHeader(data)
+    local header = assert(get_from_string(data)(16))
+    local length = le_uint_to_num(header, 1, 4)
+    local reqId = le_uint_to_num(header, 5,8)
+    local resId = le_uint_to_num(header, 9, 12)
+    local opcode = le_uint_to_num(header, 13, 16)
+    return length, reqId, resId, opcode
 end
 
 local function parseData ( data )
-
     local offset_i =  0
-
-    local r_len , r_req_id , resId , opcode = read_msg_header ( data )
-    --assert ( req_id == r_res_id )
+    local length , reqId , resId , opcode = parseMsgHeader( data )
     assert ( opcode == opcodes.REPLY )
     local data = assert ( data )
     local get = get_from_string ( data )
     local abadon = get(16)
     local responseFlags = get ( 4 )
     local cursorId = le_uint_to_num(get ( 8 ))
-
     local tags = { }
     tags.startingFrom = le_uint_to_num ( get ( 4 ) )
     tags.numberReturned = le_uint_to_num ( get ( 4 ) )
@@ -89,59 +87,48 @@ local function parseData ( data )
     tags.QueryFailure = le_bpeek ( responseFlags , 1 )
     tags.ShardConfigStale = le_bpeek ( responseFlags , 2 )
     tags.AwaitCapable = le_bpeek ( responseFlags , 3 )
-
     local res = {}
     for i = 1 , tags.numberReturned do
         res[ i + offset_i ] = from_bson ( get )
     end
-    return resId, cursorId , res, tags
+    return resId, cursorId , res, tags, length, reqId
 end
 
-
-function Mongo:addCallback (id, callback, ids, collection)
-    if type(callback) == "function" then
-        self.callbacks[id] = {callback = callback, ids = ids, collection = collection}
-    end
-end
-
-
-function Mongo:command (opcode, message, callback, ids, collection)
-    local requestId = self.requestId + 1
-    self.requestId = requestId
-    local m = compose_msg(requestId, nil, opcode, message)
-    self:addCallback(requestId, callback or function() end, ids, collection)
-    self:addQueue(requestId, opcode, m)
-end
-
-function Mongo:addQueue(requestId, opcode, m)
-    local queueLength = #self.queues + 1
-    self.queues[queueLength] = {message = m, requestId = requestId, opcode = opcode}
-    if queueLength == 1 then
-        self:sendRequest()
-    end
-end
-
-function Mongo:sendRequest()
-    if self.queues[1] then
-        self.socket:write(self.queues[1]["message"], "hex")
-        local opcode = self.queues[1]["opcode"]
-        -- Insert Update, and Delete method has no response
-        if opcode == "UPDATE" or opcode == "INSERT" or opcode == "DELETE" then
-            local requestId = self.queues[1]["requestId"]
-            if not self.callbacks[requestId].ids then
-                self.callbacks[requestId].callback()
+function Mongo:command (opcode, message, callback, collection, query)
+    self.requestId = self.requestId + 1
+    local message = composeMessage(self.requestId, nil, opcode, message)
+    local requestId = self.requestId
+    self.queues[requestId] = {
+        ["message"] = message,
+        ["requestId"] = self.requestId,
+        ["opcode"] = opcode,
+        ["query"] = query,
+        ["collection"] = collection,
+        ["callback"] = (callback or function() p("-------") end)
+    }
+    local currentQueue = self.queues[requestId]
+    self.socket:write(currentQueue["message"], "hex")
+    local opcode = currentQueue["opcode"]
+    -- Insert Update, and Delete method has no response
+    if opcode == "UPDATE" or opcode == "INSERT" or opcode == "DELETE" then
+        local query = currentQueue.query
+        local collection = currentQueue.collection
+        self:getLastError(function(error)
+            if error then
+                currentQueue.callback(error)
+                self.queues[requestId] = nil
             else
---                self.callbacks[requestId].callback()
-                local ids = self.callbacks[requestId].ids
-                local collection = self.callbacks[requestId].collection
-                self:find(collection, {_id = {["$in"] = ids}}, nil , nil, nil, function(result)
-                    self.callbacks[requestId].callback(result)
+                self:find(collection, query, nil, nil, nil, function(result)
+                    currentQueue.callback(result)
+                    self.queues[requestId] = nil
                 end)
             end
-            table.remove(self.queues, 1)
-            self:sendRequest()
-        end
+        end)
     end
+end
+
+function Mongo:getLastError(cb)
+    cb()
 end
 
 function Mongo:query ( collection , query , fields , skip , limit , callback, options )
@@ -165,15 +152,15 @@ function Mongo:query ( collection , query , fields , skip , limit , callback, op
     local m = num_to_le_uint ( flags ) .. getCollectionName ( self , collection )
             .. num_to_le_uint ( skip ) .. num_to_le_int ( limit or 0 )
             .. query .. fields
-    local requestId = self:command("QUERY", m, callback)
+    self:command("QUERY", m, callback)
 end
 
 function Mongo:update (collection, query, update, upsert, single, callback)
     local flags = 2^0*( upsert and 1 or 0 ) + 2^1*( single and 0 or 1 )
-    query = to_bson(query)
+    local queryBson = to_bson(query)
     update = to_bson(update)
-    local m = "\0\0\0\0" .. getCollectionName ( self , collection ) .. num_to_le_uint ( flags ) .. query .. update
-    self:command("UPDATE", m, callback)
+    local m = "\0\0\0\0" .. getCollectionName ( self , collection ) .. num_to_le_uint ( flags ) .. queryBson .. update
+    self:command("UPDATE", m, callback, collection, query)
 end
 
 function Mongo:insert (collection, docs, continue, callback)
@@ -192,14 +179,17 @@ function Mongo:insert (collection, docs, continue, callback)
         t [ i ] = to_bson ( v )
     end
     local m = num_to_le_uint ( flags ) .. getCollectionName ( self , collection ) .. table.concat( t )
-    self:command("INSERT", m, callback, ids, collection)
+
+    local query = {_id = {["$in"] = ids}}
+
+    self:command("INSERT", m, callback, collection, query)
 end
 
 function Mongo:remove(collection, query, singleRemove, callback)
     local flags = 2^0*( singleRemove and 1 or 0 )
-    query = to_bson(query)
-    local m = "\0\0\0\0" .. getCollectionName ( self , collection ) .. num_to_le_uint ( flags ) .. query
-    self:command("DELETE", m, callback)
+    local queryBson = to_bson(query)
+    local m = "\0\0\0\0" .. getCollectionName ( self , collection ) .. num_to_le_uint ( flags ) .. queryBson
+    self:command("DELETE", m, callback, collection, query)
 end
 
 function Mongo:findOne(collection, query, fields, skip,  cb)
@@ -217,13 +207,19 @@ function Mongo:find(collection, query, fields, skip, limit, callback)
     self:query(collection, query, fields, skip, limit, callback)
 end
 
+function Mongo:_find(collection, query, fields, option, callback)
+    option = option or {}
+    local skip = option.skip
+    local limit = option.limit
+    self:query(collection, query, fields, skip, limit, callback)
+end
+
 function Mongo:count(collection, query, callback)
     local function cb(r)
         callback(#r)
     end
     self:query(collection, query, nil, nil, nil, cb)
 end
-
 
 function Mongo:connect()
     local socket
@@ -232,19 +228,26 @@ function Mongo:connect()
         p("[Info] - Database is connected.......")
         self.tempData = ""
         socket:on("data", function(data)
-            local stringToParse
+            local stringToParse = ""
             if #self.tempData > 0 then
                 stringToParse = self.tempData .. data
             else
                 stringToParse = data
             end
-            local docLength =  read_msg_header(stringToParse)
+            local docLength =  parseMsgHeader(stringToParse)
+            if #stringToParse > docLength then
+                local parseDataStr = stringToParse:sub(0,docLength)
+                self.tempData = stringToParse:sub(docLength)
+                local requestId, cursorId , res, tags = parseData(parseDataStr)
+                p(requestId)
+                self.queues[requestId].callback(res, tags, cursorId)
+                self.queues[requestId] = nil
+            end
             if docLength == #stringToParse then
                 local requestId, cursorId , res, tags = parseData(stringToParse)
                 self.tempData = ""
-                self.callbacks[requestId].callback(res, tags, cursorId)
-                table.remove(self.queues, 1)
-                self:sendRequest()
+                self.queues[requestId].callback(res, tags, cursorId)
+                self.queues[requestId] = nil
             else
                 self.tempData = stringToParse
             end
