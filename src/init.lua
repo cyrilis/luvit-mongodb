@@ -118,8 +118,8 @@ function Mongo:command (opcode, message, callback, collection, query)
                 currentQueue.callback(error)
                 self.queues[requestId] = nil
             else
-                self:find(collection, query, nil, nil, nil, function(result)
-                    currentQueue.callback(result)
+                self:find(collection, query, nil, nil, nil, function(err, result)
+                    currentQueue.callback(nil, result)
                     self.queues[requestId] = nil
                 end)
             end
@@ -128,7 +128,13 @@ function Mongo:command (opcode, message, callback, collection, query)
 end
 
 function Mongo:getLastError(cb)
-    cb()
+    self:query("$cmd", {getLastError = true}, nil, nil, 1, function(err, res)
+        if res[1].err or res[1]["errmsg"] then
+            cb(res[1])
+        else
+            cb()
+        end
+    end, nil)
 end
 
 function Mongo:query ( collection , query , fields , skip , limit , callback, options )
@@ -193,11 +199,11 @@ function Mongo:remove(collection, query, singleRemove, callback)
 end
 
 function Mongo:findOne(collection, query, fields, skip,  cb)
-    local function callback (res)
+    local function callback(err, res)
         if res and  #res >= 1 then
-            cb(res[1])
+            cb(err, res[1])
         else
-            cb(nil)
+            cb(err, nil)
         end
     end
     self:query(collection, query, fields, skip, 1, callback)
@@ -207,16 +213,9 @@ function Mongo:find(collection, query, fields, skip, limit, callback)
     self:query(collection, query, fields, skip, limit, callback)
 end
 
-function Mongo:_find(collection, query, fields, option, callback)
-    option = option or {}
-    local skip = option.skip
-    local limit = option.limit
-    self:query(collection, query, fields, skip, limit, callback)
-end
-
 function Mongo:count(collection, query, callback)
-    local function cb(r)
-        callback(#r)
+    local function cb(err, r)
+        callback(err, #r)
     end
     self:query(collection, query, nil, nil, nil, cb)
 end
@@ -233,14 +232,14 @@ function Mongo:_onData(data)
     if docLength == #stringToParse then
         local reqId, cursorId, res, tags = parseData(stringToParse)
         self.tempData = ""
-        self.queues[reqId].callback(res, tags, cursorId)
+        self.queues[reqId].callback(nil, res, tags, cursorId)
         self.queues[reqId] = nil
     elseif docLength > #stringToParse then
         self.tempData = stringToParse
     elseif docLength < #stringToParse then
         local stringToParseSub = stringToParse:sub(1, docLength)
         local reqId, cursorId, res, tags = parseData(stringToParseSub)
-        self.queues[reqId].callback(res, tags, cursorId)
+        self.queues[reqId].callback(nil, res, tags, cursorId)
         self.queues[reqId] = nil
         self.tempData = stringToParse:sub(docLength + 1)
         self:_onData("")
