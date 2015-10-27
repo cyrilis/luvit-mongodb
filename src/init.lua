@@ -19,6 +19,8 @@ local getlib = require ( "./get" )
 local get_from_string = getlib.get_from_string
 local ObjectId = require "./objectId"
 
+local Collection = require("./collection")
+
 Mongo = Emitter:extend()
 
 _id = 0
@@ -271,6 +273,10 @@ function Mongo:connect()
         self:emit("connect")
     end)
     self.socket = socket
+end
+
+function Mongo:collection(collectionName)
+    return Collection:new(self, collectionName)
 end
 
 Mongo.ObjectId = ObjectId
