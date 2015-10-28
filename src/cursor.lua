@@ -88,8 +88,13 @@ end
 
 function Cursor:_exec()
     self.db:find(self.collectionName, self.query, self.fields, self.skip, self.limit, function(err, res)
-        -- TODO: update and remove and find
-        -- TODO: What if update $set or something else?
+        if self.update then
+            self.db:update(self.collectionName, {["$or"]=res}, self.update, nil, 1, self.cb)
+        elseif self.remove then
+            self.db:remove(self.collectionName, {["$or"]=res}, nil, self.cb)
+        else
+            self.cb(err, res)
+        end
     end)
 end
 

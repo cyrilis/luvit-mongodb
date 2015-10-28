@@ -39,10 +39,29 @@ m:on("connect", function()
 
     m:insert("abc", {content = "Content"}, nil, function(err, result)
         m:find("abc", {_id = result[1]._id}, nil, nil, nil, function(err, res)
-            assert(res[1].content == result[1].content, ":( not match")
+            p(res, "1")
+            m:find("abc", {["$or"]=res}, nil, nil, nil, function(errs, ress)
+                p(ress, "2")
+            end)
             p("Wow , PASS")
         end)
     end )
+
+    local coll = m:collection("abc")
+    coll:insert({{abc = 123}, {abc = 222}}, function(err, res)
+        if err then
+            p(err)
+            return false
+        end
+        p("RES: COLL")
+        p(res)
+--        coll:drop(function(err, res)
+--            p(err, res, "DROP") -- Test Passed!!!
+--        end)
+        coll:distinct("abc", function(err, res)
+            p(err, res)
+        end)
+    end)
 
     m:insert("abc", {
         _id = ObjectId.new(),

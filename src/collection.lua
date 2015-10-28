@@ -16,13 +16,16 @@ end
 
 function Collection:distinct(field, cb)
     local cmd = {["distinct"] = self.collectionName, ["key"] = field }
-    self.db:query("$cmd", {drop = 1}, nil, nil, 1, function(err, res)
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
         cb(err, res)
     end, nil)
 end
 
 function Collection:drop(cb)
-    -- Todo: Drop
+    local cmd = {["drop"] = self.collectionName}
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        cb(err, res)
+    end, nil)
 end
 
 function Collection:dropIndex(index, cb)
@@ -51,7 +54,7 @@ function Collection:getIndexs(cb)
 end
 
 function Collection:insert(doc, cb)
-    -- Todo: Insert
+    self.db:insert(self.collectionName, doc, nil, cb)
 end
 
 function Collection:remove(query, cb)
@@ -60,8 +63,12 @@ function Collection:remove(query, cb)
 end
 
 function Collection:renameCollection(newName, cb)
-    self.collectionName = newName
-    -- TODO: Rename Collection
+    local oldCollectionName = self.db.db .. "." ..self.collectionName .. "\0"
+    local newCollectionName = self.db.db .. "." ..newName .. "\0"
+    local cmd = {["renameCollection"] = oldCollectionName, ["to"] = newCollectionName }
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        cb(err, res)
+    end, nil)
 end
 
 module.exports = Collection
