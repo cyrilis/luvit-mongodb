@@ -15,14 +15,14 @@ function Collection:find(query, cb)
 end
 
 function Collection:distinct(field, cb)
-    local cmd = {["distinct"] = self.collectionName, ["key"] = field }
-    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+    local cmd = {distinct = self.collectionName}
+    self.db:query("$cmd", cmd, {key = "abc"}, nil, 1, function(err, res)
         cb(err, res)
     end, nil)
 end
 
 function Collection:drop(cb)
-    local cmd = {["drop"] = self.collectionName}
+    local cmd = {["drop"] = self.collectionName }
     self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
         cb(err, res)
     end, nil)

@@ -160,6 +160,7 @@ function Mongo:query ( collection , query , fields , skip , limit , callback, op
     local m = num_to_le_uint ( flags ) .. getCollectionName ( self , collection )
             .. num_to_le_uint ( skip ) .. num_to_le_int ( limit or 0 )
             .. query .. fields
+    p(m)
     self:command("QUERY", m, callback)
 end
 
