@@ -48,19 +48,33 @@ m:on("connect", function()
     end )
 
     local coll = m:collection("abc")
-    coll:insert({{abc = 123}, {abc = 222}}, function(err, res)
+    coll:insert({{abc = 123}, {abc = 222}, {abc = 123}}, function(err, res)
         if err then
             p(err)
             return false
         end
-        p("RES: COLL")
-        p(res)
-        coll:drop(function(err, res)
-            p(err, res, "DROP") -- Test Passed!!!
+        coll:find({abc = 123}):exec(function(err, res)
+            p(err, res, "collection:find")
         end)
+
+        coll:findAndModify({abc = 123}, {["$set"] = { mark = "xxxxxxx"}}, function(err, res)
+            p(err, res, "Cursor:limit, Cursor:update")
+            coll:find({mark = {["$ne"] = "xxx"}}):exec(function(err, res)
+                p(err, res, "Cursor:find for Cursor limit and update")
+                coll:find({abc = 123}):count(function(err, res)
+                    p(err, res, "Cursor:count")
+                    coll:drop(function(err, res)
+                        p(err, res, "DROP") -- Test Passed!!!
+                    end)
+                end)
+            end)
+        end)
+
+
         coll:distinct("abc",nil, function(err, res)
             p(err, res)
         end)
+
     end)
 
     m:insert("abc", {

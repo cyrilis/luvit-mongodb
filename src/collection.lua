@@ -60,12 +60,18 @@ function Collection:createIndex(index, cb)
 end
 
 function Collection:findAndModify(query, update, cb)
-    local cursor = Cursor:new(query)
+    local cursor = Cursor:new(self,query)
     return cursor:update(update, cb)
 end
 
 function Collection:findOne(query, cb)
-    return Cursor:new(query):limit(1, cb)
+    return Cursor:new(self, query):limit(1, function(err, res)
+        if err then
+            cb(err)
+            return false
+        end
+        cb(nil, res[1])
+    end)
 end
 
 function Collection:getIndexs(cb)
@@ -77,7 +83,7 @@ function Collection:insert(doc, cb)
 end
 
 function Collection:remove(query, cb)
-    local cursor = Cursor:new(query)
+    local cursor = Cursor:new(self, query)
     cursor:remove(cb)
 end
 
