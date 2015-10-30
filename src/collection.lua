@@ -14,17 +14,36 @@ function Collection:find(query, cb)
     return Cursor:new(self, query, cb)
 end
 
-function Collection:distinct(field, cb)
-    local cmd = {distinct = self.collectionName}
-    self.db:query("$cmd", cmd, {key = "abc"}, nil, 1, function(err, res)
-        cb(err, res)
+function Collection:distinct(field, query, cb)
+    local cmd = {{"_order_", "distinct", self.collectionName}, {"_order_", "key", field} }
+    if query then
+        table.insert(cmd, {"_order_", "query", query})
+    end
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        if err then
+            cb(err, nil)
+            return
+        end
+        if res[1]["errmsg"] or res[1]["err"] then
+            cb(res[1])
+            return
+        end
+        cb(err, res[1].values)
     end, nil)
 end
 
 function Collection:drop(cb)
     local cmd = {["drop"] = self.collectionName }
     self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
-        cb(err, res)
+        if err then
+            cb(err, nil)
+            return
+        end
+        if res[1]["errmsg"] or res[1]["err"] then
+            cb(res[1])
+            return
+        end
+        cb(nil, res[1])
     end, nil)
 end
 
@@ -65,7 +84,7 @@ end
 function Collection:renameCollection(newName, cb)
     local oldCollectionName = self.db.db .. "." ..self.collectionName .. "\0"
     local newCollectionName = self.db.db .. "." ..newName .. "\0"
-    local cmd = {["renameCollection"] = oldCollectionName, ["to"] = newCollectionName }
+    local cmd = {{"_order_", "renameCollection", oldCollectionName}, {"_order_", "to", newCollectionName}}
     self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
         cb(err, res)
     end, nil)

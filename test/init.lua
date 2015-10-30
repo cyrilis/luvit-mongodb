@@ -55,10 +55,10 @@ m:on("connect", function()
         end
         p("RES: COLL")
         p(res)
---        coll:drop(function(err, res)
---            p(err, res, "DROP") -- Test Passed!!!
---        end)
-        coll:distinct("abc", function(err, res)
+        coll:drop(function(err, res)
+            p(err, res, "DROP") -- Test Passed!!!
+        end)
+        coll:distinct("abc",nil, function(err, res)
             p(err, res)
         end)
     end)
