@@ -26,14 +26,105 @@ in terminal under your project path, then `require("luvit-mongodb")` in your pro
 
 ```lua
 local Mongo = require("luvit-mongodb")
-local db = Mongo:new({db = "DATABASE_NAME"})
+local db = Mongo:new({db = "DATABASE_NAME"}) 
+-- replace `DATABASE_NAME` above with a DB name.
 db:on("connect", function()
 	-- Do stuff here.
-    -- db:find("xxx", {}, nil, nil, nil, function(res)p(res)end)
+    local Post = db:collection("post")
+    local page = 1
+    Post:insert({
+		    title = "Hello word!", 
+		    content = "Here is the first blog post ....",
+		    author = "Cyril Hou"
+		},function(err, res)
+		    p(res)
+	    end)
+	local posts = Post:find({author = "Cyril Hou"})
+	posts:limit(10):skip(page * 10):update({authorAge = 25}):exec(function(err, res)
+		p(err, res)
+	end)
+	
+	Post:distinct("category", function(err, res)
+		p("All distinct value of `category` in post collections: ", res)
+	end)
 end)
 ```
 
-## Method
+## Cursor
+### Method:
+
+- ### update
+ `cursor:update(doc[, callback])`
+ - `doc`: mongodb docs, table in lua 
+ - `callback`: **optional**,  callback function
+
+ ```lua
+ post:update({abc = 123}, function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:update({abc = 123}):exec(function(err, res)
+	 p(err, res)
+ end)
+ 
+ ```
+- ### find
+ `cursor:find(query[, callback])`
+ - `query`:  mongodb query
+ - `callback`: **optional**， callback function
+
+  ```lua
+ post:find({abc = 123}, function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:find({abc = 123}):exec(function(err, res)
+	 p(err, res)
+ end)
+
+ ```
+- ### remove
+ `cursor:remove([callback])`
+ - `callback`: **optional**, callback function
+
+  ```lua
+ post:remove(function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:remove():exec(function(err, res)
+	 p(err, res)
+ end)
+
+ ```
+- ### skip
+ `cursor:skip(skip[, callback])`
+ - `skip`: *number*, docs to skip in query.
+ - `callback`:  **optional**, callback function
+
+- ### limit
+ `cursor:limit(limit[, callback])`
+ - `limit`: *number*, limit return docs count.
+ - `callback`:  **optional**, callback function
+
+- ### count
+ `cursor:count([callback])`
+ - `callback`: **optional**, callback function
+
+  ```lua
+ post:count(function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:remove():exec(function(err, res)
+	 p(err, res)
+ end)
+ ```
+
+
+
+
+## db: method
 
 - ###insert:
 	`db:insert(collection, document, continue, callback)`
@@ -80,59 +171,7 @@ end)
     - `fields`: limit field for return, eg: `{ item: 1, qty: 1, _id:0 }` 
     - `skip`: skip counts, *int*
     - `callback`: function, without found document as #1 parameter
-    
-## Usage
-```lua
 
-local Mongo = require("path/to/luvit-mongo")
-local Bit64 = Mongo.Bit64
-local Bit32 = Mongo.Bit32
-local Date = Mongo.Date
-local ObjectId = Mongo.ObjectId
-
-m = Mongo:new({db = "test"})
-
-m:on("connect", function()
-    m:insert("abc", {name = "a", age = 2}, nil, function(res)
-        local _id = res[1]._id
-        m:find("abc", {_id = res[1]._id}, nil, nil, nil, function(res)
-            if assert(#res == 1, "Should be 1") then
-                p("Insert Pass!")
-            end
-            m:update("abc", {_id = _id}, {["$set"] = {height = "Hello World!"}}, true, nil,function()
-                m:find("abc", {_id = _id}, nil, nil, nil, function(res)
-                    if assert(res[1].height == "Hello World!", "Update faied") then
-                        p("Update Passed!!!")
-                        m:remove("abc", {_id = _id}, nil, function()
-                            p("Deleted")
-                            m:count("abc", {_id = _id}, function(res)
-                                if assert(res == 0, "Should be 0") then
-                                    p("Remove and count pass!")
-                                end
-                            end)
-                        end)
-                    end
-                end)
-            end)
-        end)
-    end)
-
-    m:insert("abc", {
-        _id = ObjectId.new(),
-        long = Bit64(123.2),
-        int = Bit32(23840.3),
-        time = Date(os.time()),
-        longTime = Bit64(os.time() * 1000),
-        float = 123.4
-    }, nil, function(result)
-        print("Result:")
-        p(result)
-    end)
-
-end)
-
-
-```
 
 ## Test and example
 See files in "test/" Folder
@@ -143,9 +182,10 @@ If you have any issue while use this library please let me know. thanks.
 - [x] Bit64 support
 - [x] Bit32 support
 - [x] Date type support
-- [ ] Cursor
-- [ ] Raw Command support
-- [ ] Write concern
+- [x] Cursor
+- [x] Raw Command support
+- [x] Write concern
+- [ ] Auth
 
 ## MIT
 The MIT License (MIT)

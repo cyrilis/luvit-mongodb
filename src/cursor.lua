@@ -56,18 +56,11 @@ function Cursor:limit(limit, cb)
 end
 
 function Cursor:count(cb)
-    local cmd = {{"_order_", "count", self.collectionName}, {"_order_", "query", self.query} }
-    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
-        if err then
-            cb(err, nil)
-            return
-        end
-        if res[1]["errmsg"] or res[1]["err"] then
-            cb(res[1])
-            return
-        end
-        cb(err, res[1].n)
-    end)
+    self.action = "COUNT"
+    if cb and type(cb) == "function" then
+        self.cb = cb
+        self:_exec()
+    end
 end
 
 function Cursor:update(update, cb)
@@ -82,6 +75,21 @@ function Cursor:update(update, cb)
 end
 
 function Cursor:_exec()
+    if self.action == "COUNT" then
+        local cmd = {{"_order_", "count", self.collectionName}, {"_order_", "query", self.query} }
+        self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+            if err then
+                cb(err, nil)
+                return
+            end
+            if res[1]["errmsg"] or res[1]["err"] then
+                cb(res[1])
+                return
+            end
+            cb(err, res[1].n)
+        end)
+        return self
+    end
     self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)
         if self._update then
             self.db:update(self.collectionName, {["$or"]=res}, self._update, nil, 1, self.cb)

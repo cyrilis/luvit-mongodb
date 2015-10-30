@@ -15,6 +15,10 @@ function Collection:find(query, cb)
 end
 
 function Collection:distinct(field, query, cb)
+    if type(query) == "function" and not cb then
+        cb = query
+        query = nil
+    end
     local cmd = {{"_order_", "distinct", self.collectionName}, {"_order_", "key", field} }
     if query then
         table.insert(cmd, {"_order_", "query", query})
