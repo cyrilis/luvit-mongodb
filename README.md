@@ -24,18 +24,214 @@ in terminal under your project path, then `require("luvit-mongodb")` in your pro
 - #### Or with NPM:
 	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.
 
-## Initialize
+## Getting started
 
 ```lua
 local Mongo = require("luvit-mongodb")
-local db = Mongo:new({db = "DATABASE_NAME"})
+local db = Mongo:new({db = "DATABASE_NAME"}) 
+-- replace `DATABASE_NAME` above with a DB name.
 db:on("connect", function()
 	-- Do stuff here.
-    -- db:find("xxx", {}, nil, nil, nil, function(res)p(res)end)
+    local Post = db:collection("post")
+    local page = 1
+    Post:insert({
+		    title = "Hello word!", 
+		    content = "Here is the first blog post ....",
+		    author = "Cyril Hou"
+		},function(err, res)
+		    p(res)
+	    end)
+	local posts = Post:find({author = "Cyril Hou"})
+	posts:limit(10):skip(page * 10):update({authorAge = 25}):exec(function(err, res)
+		p(err, res)
+	end)
+	
+	Post:distinct("category", function(err, res)
+		p("All distinct value of `category` in post collections: ", res)
+	end)
 end)
 ```
 
-## Method
+## Cursor
+
+- ### update
+ `cursor:update(doc[, callback])`
+ - `doc`: *table*, **required**, The modifications to apply. 
+ - `callback`: **optional**,  callback function
+
+ ```lua
+ post:update({abc = 123}, function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:update({abc = 123}):exec(function(err, res)
+	 p(err, res)
+ end)
+ 
+ ```
+- ### find
+ `cursor:find(query[, callback])`
+ - `query`: *table*, **optional** , Specifies selection criteria using query operators. To return all documents in a collection, omit this parameter or pass an empty document ({}).
+ - `callback`: **optional**， callback function
+
+  ```lua
+ post:find({abc = 123}, function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:find({abc = 123}):exec(function(err, res)
+	 p(err, res)
+ end)
+
+ ```
+- ### remove
+ `cursor:remove([callback])`
+ - `callback`: **optional**, callback function
+
+  ```lua
+ post:remove(function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:remove():exec(function(err, res)
+	 p(err, res)
+ end)
+
+ ```
+- ### skip
+ `cursor:skip(skip[, callback])`
+ - `skip`: *number*, docs to skip in query.
+ - `callback`:  **optional**, callback function
+
+- ### limit
+ `cursor:limit(limit[, callback])`
+ - `limit`: *number*, limit return docs count.
+ - `callback`:  **optional**, callback function
+
+- ### count
+ `cursor:count([callback])`
+ - `callback`: **optional**, callback function
+
+  ```lua
+ post:count(function(err, res)
+	 p(err, res)
+ end)
+ -- same as bellow ⬇️
+  post:remove():exec(function(err, res)
+	 p(err, res)
+ end)
+ ```
+
+- ### exec
+`cursor:exec(callback)`
+
+ - `callback`: **required**, callback function
+ Execute callback function after set query and limit skip params.
+ 
+
+## Collection
+
+- ### initialize
+A collection should initialize with db instance.
+`db:collection(collectionName)`
+ - collectionName: *string*, name for collection in name. 
+
+ ```lua
+	local coll = db:collection("post")
+ ```
+ 
+- ### find
+ `coll:find(query[, callback])`
+ - query: *table*, **optional**, Specifies selection criteria using query operators. To return all documents in a collection, omit this parameter or pass an empty document ({}).
+ - callback: *function*, **optional**, callback function.
+
+ ```lua
+	 coll:find({id = 1}):exec(function(err, res)
+		 p(err, res)
+	 end)
+     -- same as bellow ⬇️
+	 coll:find({id = 1}, function(err, res)
+		 p(err, res)
+	 end)
+ ```
+
+- ### distinct
+
+	`coll:distinct(field[, query][, callback])`
+ - field: *string*, **required**, The field for which to return distinct values.
+ - query: *table*, **optional**, A query that specifies the documents from which to retrieve the distinct values.
+ - callback: *function*, **optional**, Callback function.
+
+ ```lua
+ coll:distinct("category", {public = true}, function(err, res)
+ 	p(err, res)
+ end)
+ ```
+
+- ### drop
+ `coll:drop(callback)`
+ - callback: *function*, **required**, callback function
+
+ ```lua
+ coll:drop(function(err, res)
+	 p(err, res)
+ end)
+ ```
+
+- ### findAndModify
+ `coll:findAndModify(query, update[, callback])`
+ - query: *table*, **required**, Optional. The selection criteria for the modification. The query field employs the same query selectors as used in the `collection.find()` method. Although the query may match multiple documents, `findAndModify()` will only select one document to modify.
+ - update: *table*, **required**, The update field employs the same update operators or field: value specifications to modify the selected document.
+ - callback: *function*, **optional**, Callback function. 
+
+ ```lua
+ coll:findAndModify({abc = 123}, {def = true}, function(err, res)
+		 p(err, res)
+ end)
+ ``` 
+
+- ### findOne
+ `coll:findOne(query[, callback])`
+ - query: *table*, **required**, Optional. The selection criteria for the modification. The query field employs the same query selectors as used in the `collection.find()` method. Although the query may match multiple documents, `findAndModify()` will only select one document to modify.
+ - callback: *function*, **optional**, Callback function. 
+
+ ```lua
+ coll:findOne({abc = 123}, function(err, res)
+		 p(err, res)
+ end)
+ ``` 
+
+
+- ### remove
+ `coll:remove(query[, callback])`
+ - query: *table*, **required**, Optional. The selection criteria for the modification. The query field employs the same query selectors as used in the `collection.find()` method
+ - callback: *function*, **optional**, Callback function. 
+
+ ```lua
+ coll:remove({public = false}, function(err, res)
+	 	p(err, res)
+ end)
+ ```
+
+- ### insert
+ `coll:insert(doc[, callback])` 
+ - doc: *table*, **required**, A document or array of documents to insert into the collection.
+ - callback: *function*, **optional**, Callback function.
+
+ ```lua
+ coll:insert({title = "Hello World!"}, function(err, res)
+	  	p(err, res)
+ end)
+ ```
+ 
+#### chainable cursor example:
+```lua
+coll:find():update({public = true}):exec(function(err, res)
+	p(err, res)
+end)
+```
+
+## Database
 
 - ###insert:
 	`db:insert(collection, document, continue, callback)`
@@ -82,59 +278,7 @@ end)
     - `fields`: limit field for return, eg: `{ item: 1, qty: 1, _id:0 }` 
     - `skip`: skip counts, *int*
     - `callback`: function, without found document as #1 parameter
-    
-## Usage
-```lua
 
-local Mongo = require("path/to/luvit-mongo")
-local Bit64 = Mongo.Bit64
-local Bit32 = Mongo.Bit32
-local Date = Mongo.Date
-local ObjectId = Mongo.ObjectId
-
-m = Mongo:new({db = "test"})
-
-m:on("connect", function()
-    m:insert("abc", {name = "a", age = 2}, nil, function(res)
-        local _id = res[1]._id
-        m:find("abc", {_id = res[1]._id}, nil, nil, nil, function(res)
-            if assert(#res == 1, "Should be 1") then
-                p("Insert Pass!")
-            end
-            m:update("abc", {_id = _id}, {["$set"] = {height = "Hello World!"}}, true, nil,function()
-                m:find("abc", {_id = _id}, nil, nil, nil, function(res)
-                    if assert(res[1].height == "Hello World!", "Update faied") then
-                        p("Update Passed!!!")
-                        m:remove("abc", {_id = _id}, nil, function()
-                            p("Deleted")
-                            m:count("abc", {_id = _id}, function(res)
-                                if assert(res == 0, "Should be 0") then
-                                    p("Remove and count pass!")
-                                end
-                            end)
-                        end)
-                    end
-                end)
-            end)
-        end)
-    end)
-
-    m:insert("abc", {
-        _id = ObjectId.new(),
-        long = Bit64(123.2),
-        int = Bit32(23840.3),
-        time = Date(os.time()),
-        longTime = Bit64(os.time() * 1000),
-        float = 123.4
-    }, nil, function(result)
-        print("Result:")
-        p(result)
-    end)
-
-end)
-
-
-```
 
 ## Test and example
 See files in "test/" Folder
@@ -145,9 +289,13 @@ If you have any issue while use this library please let me know. thanks.
 - [x] Bit64 support
 - [x] Bit32 support
 - [x] Date type support
-- [ ] Cursor
-- [ ] Raw Command support
-- [ ] Write concern
+- [x] Cursor
+- [x] Raw Command support
+- [x] Write concern
+- [ ] Auth
+- [ ] Create index
+- [ ] Get index
+- [ ] Remove index
 
 ## MIT
 The MIT License (MIT)
