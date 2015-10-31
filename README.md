@@ -22,7 +22,7 @@ in terminal under your project path, then `require("luvit-mongodb")` in your pro
 - #### Or with NPM:
 	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.
 
-## Initialize
+## Getting started
 
 ```lua
 local Mongo = require("luvit-mongodb")
@@ -51,11 +51,10 @@ end)
 ```
 
 ## Cursor
-### Method:
 
 - ### update
  `cursor:update(doc[, callback])`
- - `doc`: mongodb docs, table in lua 
+ - `doc`: *table*, **required**, The modifications to apply. 
  - `callback`: **optional**,  callback function
 
  ```lua
@@ -70,7 +69,7 @@ end)
  ```
 - ### find
  `cursor:find(query[, callback])`
- - `query`:  mongodb query
+ - `query`: *table*, **optional** , Specifies selection criteria using query operators. To return all documents in a collection, omit this parameter or pass an empty document ({}).
  - `callback`: **optional**， callback function
 
   ```lua
@@ -121,10 +120,116 @@ end)
  end)
  ```
 
+- ### exec
+`cursor:exec(callback)`
+
+ - `callback`: **required**, callback function
+ Execute callback function after set query and limit skip params.
+ 
+
+## Collection
+
+- ### initialize
+A collection should initialize with db instance.
+`db:collection(collectionName)`
+ - collectionName: *string*, name for collection in name. 
+
+ ```lua
+	local coll = db:collection("post")
+ ```
+ 
+- ### find
+ `coll:find(query[, callback])`
+ - query: *table*, **optional**, Specifies selection criteria using query operators. To return all documents in a collection, omit this parameter or pass an empty document ({}).
+ - callback: *function*, **optional**, callback function.
+
+ ```lua
+	 coll:find({id = 1}):exec(function(err, res)
+		 p(err, res)
+	 end)
+     -- same as bellow ⬇️
+	 coll:find({id = 1}, function(err, res)
+		 p(err, res)
+	 end)
+ ```
+
+- ### distinct
+
+	`coll:distinct(field[, query][, callback])`
+ - field: *string*, **required**, The field for which to return distinct values.
+ - query: *table*, **optional**, A query that specifies the documents from which to retrieve the distinct values.
+ - callback: *function*, **optional**, Callback function.
+
+ ```lua
+ coll:distinct("category", {public = true}, function(err, res)
+ 	p(err, res)
+ end)
+ ```
+
+- ### drop
+ `coll:drop(callback)`
+ - callback: *function*, **required**, callback function
+
+ ```lua
+ coll:drop(function(err, res)
+	 p(err, res)
+ end)
+ ```
+
+- ### findAndModify
+ `coll:findAndModify(query, update[, callback])`
+ - query: *table*, **required**, Optional. The selection criteria for the modification. The query field employs the same query selectors as used in the `collection.find()` method. Although the query may match multiple documents, `findAndModify()` will only select one document to modify.
+ - update: *table*, **required**, The update field employs the same update operators or field: value specifications to modify the selected document.
+ - callback: *function*, **optional**, Callback function. 
+
+ ```lua
+ coll:findAndModify({abc = 123}, {def = true}, function(err, res)
+		 p(err, res)
+ end)
+ ``` 
+
+- ### findOne
+ `coll:findOne(query[, callback])`
+ - query: *table*, **required**, Optional. The selection criteria for the modification. The query field employs the same query selectors as used in the `collection.find()` method. Although the query may match multiple documents, `findAndModify()` will only select one document to modify.
+ - callback: *function*, **optional**, Callback function. 
+
+ ```lua
+ coll:findOne({abc = 123}, function(err, res)
+		 p(err, res)
+ end)
+ ``` 
 
 
+- ### remove
+ `coll:remove(query[, callback])`
+ - query: *table*, **required**, Optional. The selection criteria for the modification. The query field employs the same query selectors as used in the `collection.find()` method
+ - callback: *function*, **optional**, Callback function. 
 
-## db: method
+ ```lua
+ coll:remove({public = false}, function(err, res)
+	 	p(err, res)
+ end)
+ ```
+
+- ### insert
+ `coll:insert(doc[, callback])` 
+ - doc: *table*, **required**, A document or array of documents to insert into the collection.
+ - callback: *function*, **optional**, Callback function.
+
+ ```lua
+ coll:insert({title = "Hello World!"}, function(err, res)
+	  	p(err, res)
+ end)
+ ```
+ 
+#### chainable cursor example:
+```lua
+coll:find():update({public = true}):exec(function(err, res)
+	p(err, res)
+end)
+```
+
+## Database
 
 - ###insert:
 	`db:insert(collection, document, continue, callback)`
@@ -186,6 +291,9 @@ If you have any issue while use this library please let me know. thanks.
 - [x] Raw Command support
 - [x] Write concern
 - [ ] Auth
+- [ ] Create index
+- [ ] Get index
+- [ ] Remove index
 
 ## MIT
 The MIT License (MIT)
