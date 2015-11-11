@@ -88,5 +88,22 @@ m:on("connect", function()
         p("Result:", result)
     end)
 
+    local User = m:collection("user")
+    insertAndRemove = function()
+        p("Inserting......")
+        User:insert({
+            name = "Cyril Hou",
+            id = 1,
+            birthday = os.date(),
+            bio = "Weak tables is a good mechanism, but how to find proper objects to use in weak tables? There is about 2Mb of lua code in project and it's problematically to find what objects are not deallocated and still has a reference. Transforming all tables into weak tables will cause objects premature destroying. Also tables are mostly used to take ownership of objects and to free them only when it's necessary. Problem is that not all references are released and i cant' find them"
+        }, function(err, users)
+            p("Removing.......")
+            User:remove(users[1]):exec(function(err, res)
+                p("Done")
+            end)
+        end)
+    end
+    insertAndRemove()
+
 end)
 

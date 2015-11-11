@@ -88,7 +88,7 @@ end
 
 function Collection:remove(query, cb)
     local cursor = Cursor:new(self, query)
-    cursor:remove(cb)
+    return cursor:remove(cb)
 end
 
 function Collection:renameCollection(newName, cb)

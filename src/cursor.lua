@@ -64,6 +64,7 @@ function Cursor:count(cb)
 end
 
 function Cursor:update(update, cb)
+    self.action = "UPDATE"
     if update then
         self._update = update
     end
@@ -79,21 +80,21 @@ function Cursor:_exec()
         local cmd = {{"_order_", "count", self.collectionName}, {"_order_", "query", self.query} }
         self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
             if err then
-                cb(err, nil)
+                self.cb(err, nil)
                 return
             end
             if res[1]["errmsg"] or res[1]["err"] then
-                cb(res[1])
+                self.cb(res[1])
                 return
             end
-            cb(err, res[1].n)
+            self.cb(err, res[1].n)
         end)
         return self
     end
     self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)
-        if self._update then
+        if self._update and self.action == "UPDATE" then
             self.db:update(self.collectionName, {["$or"]=res}, self._update, nil, 1, self.cb)
-        elseif self._remove then
+        elseif self.action == "REMOVE" then
             self.db:remove(self.collectionName, {["$or"]=res}, nil, self.cb)
         else
             self.cb(err, res)
