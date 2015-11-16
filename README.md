@@ -21,8 +21,8 @@ in terminal under your project path, then `require("luvit-mongodb")` in your pro
 - #### Or copy source files:
 	Just put source file in your project, then require it with `./path/to/luvit-mongodb`
     
-- #### Or with NPM:
-	If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.
+- #### ~~Or with NPM:~~ (Not recommended)
+	~~If you would like to install with NPM, you can just run `npm install luvit-mongodb` in terminal under your project path. then require `module/luvit-mongodb` in your project.~~
 
 ## Getting started
 
