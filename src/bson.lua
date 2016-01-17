@@ -190,7 +190,7 @@ local function pack ( k , v )
     local mt = getmetatable ( v )
 
     if ot == "number" then
-        if v * 2 == v then
+        if v ~= 0 and v * 2 == v then
             if v == math.huge then
                 return "\001"..k.."\000\000\000\000\000\000\000\240\127"
             elseif v == -math.huge then
