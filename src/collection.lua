@@ -100,4 +100,4 @@ function Collection:renameCollection(newName, cb)
     end, nil)
 end
 
-module.exports = Collection
+return Collection

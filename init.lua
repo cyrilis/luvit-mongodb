@@ -4,4 +4,4 @@
 -- Email: houshoushuai@gmail.com
 --
 
-module.exports = require("./src/")
+return require("./src/")

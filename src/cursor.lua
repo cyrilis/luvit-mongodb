@@ -111,4 +111,4 @@ function Cursor:exec(cb)
     return self
 end
 
-module.exports = Cursor
+return Cursor
