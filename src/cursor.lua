@@ -55,6 +55,17 @@ function Cursor:limit(limit, cb)
     return self
 end
 
+function Cursor:sort(doc, cb)
+    if doc then
+        self._sort = doc
+    end
+    if cb and type(cb) == "function" then
+        self.cb = cb
+        self:_exec()
+    end
+    return self
+end
+
 function Cursor:count(cb)
     self.action = "COUNT"
     if cb and type(cb) == "function" then
@@ -90,6 +101,11 @@ function Cursor:_exec()
             self.cb(err, res[1].n)
         end)
         return self
+    end
+    if self._sort then
+        if self.query and not self.query["$query"] or not self.query then
+            self.query = {["$query"] = self.query, ["$orderby"] = self._sort}
+        end
     end
     self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)
         if self._update and self.action == "UPDATE" then
