@@ -230,7 +230,11 @@ function Mongo:_onData(data)
         stringToParse = data
     end
 
-    local docLength = parseMsgHeader(stringToParse)
+    local status, docLength = pcall(function() return parseMsgHeader(stringToParse) end)
+    if not status then
+        return
+    end
+
     if docLength == #stringToParse then
         local reqId, cursorId, res, tags = parseData(stringToParse)
         self.tempData = ""

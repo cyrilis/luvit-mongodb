@@ -37,6 +37,18 @@ m:on("connect", function()
         end)
     end)
 
+
+    for i = 1,500 do
+        local insert = {
+            uid = math.floor(math.random(1000)),
+            bean = math.floor(math.random(1000))
+        }
+        p( "INSERT: ----------->", i, insert)
+        m:insert("Leaderboard", insert, nil, function(err, res)
+            p("Result: ----------->", err, res)
+        end)
+    end
+
     m:insert("abc", {content = "Content"}, nil, function(err, result)
         m:find("abc", {_id = result[1]._id}, nil, nil, nil, function(err, res)
             p(res, "1")
