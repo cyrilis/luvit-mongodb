@@ -6,7 +6,7 @@ function Cursor:initialize(collection, query, cb)
     self.db = collection.db
     self.collectionName = collection.collectionName
     self.collection = collection
-    self.query = query
+    self.query = query or {}
     if cb and type(cb) == "function" then
         self.cb = cb
         self:_exec()
@@ -23,9 +23,7 @@ function Cursor:remove(cb)
 end
 
 function Cursor:find(query, cb)
-    if query then
-        self.query = query
-    end
+    self.query = query or {}
     if cb and type(cb) == "function" then
         self.cb = cb
         self:_exec()
@@ -104,7 +102,8 @@ function Cursor:_exec()
     end
     if self._sort then
         if self.query and not self.query["$query"] or not self.query then
-            self.query = {["$query"] = self.query, ["$orderby"] = self._sort}
+            self.query = {{"_order_", "$query", self.query}, {"_order_", "$orderby", self._sort} }
+            p(self.query)
         end
     end
     self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)

@@ -38,16 +38,16 @@ m:on("connect", function()
     end)
 
 
-    for i = 1,500 do
-        local insert = {
-            uid = math.floor(math.random(1000)),
-            bean = math.floor(math.random(1000))
-        }
-        p( "INSERT: ----------->", i, insert)
-        m:insert("Leaderboard", insert, nil, function(err, res)
-            p("Result: ----------->", err, res)
-        end)
-    end
+--    for i = 1,500 do
+--        local insert = {
+--            uid = math.floor(math.random(1000)),
+--            bean = math.floor(math.random(1000))
+--        }
+--        p( "INSERT: ----------->", i, insert)
+--        m:insert("Leaderboard", insert, nil, function(err, res)
+--            p("Result: ----------->", err, res)
+--        end)
+--    end
 
     m:insert("abc", {content = "Content"}, nil, function(err, result)
         m:find("abc", {_id = result[1]._id}, nil, nil, nil, function(err, res)
@@ -58,6 +58,16 @@ m:on("connect", function()
             p("Wow , PASS")
         end)
     end )
+
+    -- sort test
+    m:collection("number"):insert({{number = 1},{number = 2},{number = 3}}, function(err, res)
+        p("SORT------", err, res)
+        m:collection("number"):find():sort({number = 1}):exec(function(err, res)
+            p("SORT------ TEST ---------", err, res)
+            print("\n\n")
+            m:collection("number"):drop(function() end)
+        end)
+    end)
 
     local coll = m:collection("abc")
     coll:insert({{abc = 123}, {abc = 222}, {abc = 123}}, function(err, res)
@@ -101,7 +111,7 @@ m:on("connect", function()
     end)
 
     local User = m:collection("user")
-    insertAndRemove = function()
+    local insertAndRemove = function()
         p("Inserting......")
         User:insert({
             name = "Cyril Hou",
