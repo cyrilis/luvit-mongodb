@@ -123,7 +123,11 @@ function Cursor:_exec()
                 p("No result match: ", self.query, " for remove")
                 self.cb(err, {})
             else
-                self.db:remove(self.collectionName, {["$or"]=res}, nil, self.cb)
+                local ids = {}
+                for _, v in pairs(res) do
+                    table.insert(ids, {_id = ObjectId(v._id)})
+                end
+                self.db:remove(self.collectionName, {["$or"]=ids}, nil, self.cb)
             end
         else
             self.cb(err, res)
