@@ -1,6 +1,6 @@
 return {
   name = "cyrilis/luvit-mongodb",
-  version = "0.0.10",
+  version = "0.0.11",
   homepage = "https://github.com/cyrilis/luvit-mongodb",
   description = "Mongodb Driver in pure luvit.",
   tags = {"luvit", "mongodb", "database"},
