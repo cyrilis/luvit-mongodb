@@ -29,15 +29,15 @@ local ffi = require("ffi")
 ffi.cdef[[
 	typedef long time_t;
 
- 	typedef struct timeval {
+ 	typedef struct dateval {
 		time_t tv_sec;
 		time_t tv_usec;
-	} timeval;
+	} dateval;
 
-	int gettimeofday(struct timeval* t, void* tzp);
+	int gettimeofday(struct dateval* t, void* tzp);
 ]]
 
-local gettimeofday_struct = ffi.new("timeval")
+local gettimeofday_struct = ffi.new("dateval")
 local function getTime()
     ffi.C.gettimeofday(gettimeofday_struct, nil)
     return tonumber(gettimeofday_struct.tv_sec) * 1000 + tonumber(gettimeofday_struct.tv_usec / 1000)
