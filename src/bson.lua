@@ -25,6 +25,24 @@ local function toLSB(bytes,value)
     return str
 end
 
+local ffi = require("ffi")
+ffi.cdef[[
+	typedef long time_t;
+
+ 	typedef struct timeval {
+		time_t tv_sec;
+		time_t tv_usec;
+	} timeval;
+
+	int gettimeofday(struct timeval* t, void* tzp);
+]]
+
+local gettimeofday_struct = ffi.new("timeval")
+local function getTime()
+    ffi.C.gettimeofday(gettimeofday_struct, nil)
+    return tonumber(gettimeofday_struct.tv_sec) * 1000 + tonumber(gettimeofday_struct.tv_usec / 1000)
+end
+
 local function toLSB32(value) return toLSB(4,value) end
 local function toLSB64(value) return toLSB(8,value) end
 local function to_int32(n,v) return "\016"..n.."\000"..toLSB32(v) end
@@ -79,6 +97,7 @@ function Bit32(value)
 end
 
 function Date(value)
+    value = value or getTime()
     value = tonumber(value)
     if #tostring(value) < 13 then
         value = value * 1000
@@ -110,46 +129,49 @@ local function read_document ( get , numerical )
     while true do
         local op = get ( 1 )
         if op == "\0" then break end
-
         local e_name = read_terminated_string ( get )
         local v
         if op == "\1" then -- Double
-        v = from_double ( get ( 8 ) )
+            v = from_double ( get ( 8 ) )
         elseif op == "\2" then -- String
-        local len = le_uint_to_num ( get ( 4 ) )
-        v = get ( len - 1 )
-        assert ( get ( 1 ) == "\0" )
+            local len = le_uint_to_num ( get ( 4 ) )
+            v = get ( len - 1 )
+            assert ( get ( 1 ) == "\0" )
         elseif op == "\3" then -- Embedded document
-        v = read_document ( get , false )
+            v = read_document ( get , false )
         elseif op == "\4" then -- Array
-        v = read_document ( get , true )
+            v = read_document ( get , true )
         elseif op == "\5" then -- Binary
-        local len = le_uint_to_num ( get ( 4 ) )
-        local subtype = get ( 1 )
-        v = get ( len )
+            local len = le_uint_to_num ( get ( 4 ) )
+            local subtype = get ( 1 )
+            v = get ( len )
         elseif op == "\7" then -- ObjectId
-        v = new_object_id ( get ( 12 ) )
+            v = new_object_id ( get ( 12 ) )
         elseif op == "\8" then -- false
-        local f = get ( 1 )
-        if f == "\0" then
-            v = false
-        elseif f == "\1" then
-            v = true
-        else
-            error ( f:byte ( ) )
-        end
+            local f = get ( 1 )
+            if f == "\0" then
+                v = false
+            elseif f == "\1" then
+                v = true
+            else
+                error ( f:byte ( ) )
+            end
         elseif op == "\9" then -- unix time
-        v = le_uint_to_num ( get ( 8 ) , 1 , 8 ) / 1000
+            v = get(8)
+            if v == nil then
+                v = nil
+            else
+                v = Date(le_uint_to_num ( v , 1 , 8 ))
+            end
         elseif op == "\10" then -- Null
-        v = nil
+            v = nil
         elseif op == "\16" then --int32
-        v = le_int_to_num ( get ( 4 ) , 1 , 8 )
+            v = le_int_to_num ( get ( 4 ) , 1 , 8 )
         elseif op == "\18" then --int64
-        v = le_int_to_num ( get ( 8 ) , 1 , 8 )
+            v = le_int_to_num ( get ( 8 ) , 1 , 8 )
         else
             error ( "Unknown BSON type " .. strbyte ( op ) )
         end
-
         if numerical then
             -- tg add
             -- t [ tonumber ( e_name ) ] = v

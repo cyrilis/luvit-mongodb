@@ -103,7 +103,6 @@ function Cursor:_exec()
     if self._sort then
         if self.query and not self.query["$query"] or not self.query then
             self.query = {{"_order_", "$query", self.query}, {"_order_", "$orderby", self._sort} }
-            p(self.query)
         end
     end
     self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)
