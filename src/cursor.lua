@@ -1,6 +1,6 @@
 local Emitter = require('core').Emitter
 local ObjectId= require ( "./objectId" ).ObjectId
-Cursor = Emitter:extend()
+local Cursor = Emitter:extend()
 
 function Cursor:initialize(collection, query, cb)
     self.db = collection.db
@@ -24,6 +24,15 @@ end
 
 function Cursor:find(query, cb)
     self.query = query or {}
+    if cb and type(cb) == "function" then
+        self.cb = cb
+        self:_exec()
+    end
+    return self
+end
+
+function Cursor:fields(fields, cb)
+    self._fields = fields or {}
     if cb and type(cb) == "function" then
         self.cb = cb
         self:_exec()
@@ -105,7 +114,7 @@ function Cursor:_exec()
             self.query = {{"_order_", "$query", self.query}, {"_order_", "$orderby", self._sort} }
         end
     end
-    self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)
+    self.db:find(self.collectionName, self.query, self._fields, self._skip, self._limit, function(err, res)
         if self._update and self.action == "UPDATE" then
             if next(res) == nil then
                 p("No result match: ", self.query, " for update")

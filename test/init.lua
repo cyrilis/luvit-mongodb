@@ -83,7 +83,7 @@ m:on("connect", function()
             p(err)
             return false
         end
-        coll:find({abc = 123}):exec(function(err, res)
+        coll:find({abc = 123}):fields({_id = 1}):exec(function(err, res)
             p(err, res, "collection:find")
         end)
 
