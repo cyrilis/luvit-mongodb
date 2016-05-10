@@ -13,6 +13,14 @@ local ObjectId = Mongo.ObjectId
 m = Mongo:new({db = "test"})
 
 m:on("connect", function()
+    m:collection("abc"):createIndex({name = 1, age = 1}, function(err, res)
+        p(err, res)
+    end)
+
+    m:collection("abc"):getIndex(function(err, res)
+        p(err, res)
+    end)
+
     m:insert("abc", {name = "a", age = 2}, nil, function(err, res)
         local _id = res[1]._id
         m:find("abc", {_id = res[1]._id},nil, nil, nil, function(err, res)

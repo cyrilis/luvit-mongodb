@@ -3,7 +3,7 @@ local Emitter = require('core').Emitter
 local Cursor = require("./cursor")
 
 
-Collection = Emitter:extend()
+local Collection = Emitter:extend()
 
 function Collection:initialize(db, collectionName)
     self.collectionName = collectionName
@@ -52,15 +52,95 @@ function Collection:drop(cb)
 end
 
 function Collection:dropIndex(index, cb)
-    -- Todo: drop index
+    local collectionName = self.collectionName
+    local indexes = index
+    local cmd = {
+        { "_order_", "dropIndexes", collectionName },
+        { "_order_", "index", indexes}
+    }
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        local result = res[1]
+        if result.ok == 1 then
+            cb(err, result)
+        else
+            cb(err or result)
+        end
+    end, nil)
 end
 
-function Collection:dropIndexs(cb)
-    -- Todo: drop All Index
+function Collection:dropIndexes(cb)
+    local collectionName = self.collectionName
+    local indexes = "*"
+    local cmd = {
+        { "_order_", "dropIndexes", collectionName },
+        { "_order_", "index", indexes}
+    }
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        local result = res[1]
+        if result.ok == 1 then
+            cb(err, result)
+        else
+            cb(err or result)
+        end
+    end, nil)
+end
+
+function Collection:ensureIndex(index, cb)
+    self:createIndex(index, cb)
 end
 
 function Collection:createIndex(index, cb)
     -- Todo: create Index
+    local collectionName = self.collectionName
+    local indexes
+    local name = ""
+
+    if type(index) == "string" then
+        indexes = index
+    else
+        if #index > 0 then
+            for k,v in pairs(index) do
+                if type(k) == "number" then
+                    k = v[2]
+                end
+                name = name .. "_" .. k
+            end
+        else
+            for k,v in pairs(index) do
+                name = name .. "_" .. k
+            end
+        end
+        indexes = {{key = index, name = name}}
+    end
+
+    local cmd = {
+        { "_order_", "createIndexes", collectionName },
+        { "_order_", "indexes", indexes}
+    }
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        local result = res[1]
+        if result.ok == 1 then
+            cb(err, result)
+        else
+            cb(err or result)
+        end
+    end, nil)
+end
+
+function Collection:getIndex(cb)
+    local collectionName = self.collectionName
+    local indexes = "*"
+    local cmd = {
+        ["listIndexes"] = collectionName
+    }
+    self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
+        local result = res[1]
+        if result.ok == 1 then
+            cb(err, result)
+        else
+            cb(err or result)
+        end
+    end, nil)
 end
 
 function Collection:findAndModify(query, update, cb)
@@ -78,10 +158,6 @@ function Collection:findOne(query, cb)
     end)
 end
 
-function Collection:getIndexs(cb)
-    -- Todo: return all index
-end
-
 function Collection:insert(doc, cb)
     self.db:insert(self.collectionName, doc, nil, cb)
 end
@@ -94,7 +170,10 @@ end
 function Collection:renameCollection(newName, cb)
     local oldCollectionName = self.db.db .. "." ..self.collectionName .. "\0"
     local newCollectionName = self.db.db .. "." ..newName .. "\0"
-    local cmd = {{"_order_", "renameCollection", oldCollectionName}, {"_order_", "to", newCollectionName}}
+    local cmd = {
+        {"_order_", "renameCollection", oldCollectionName},
+        {"_order_", "to", newCollectionName }
+    }
     self.db:query("$cmd", cmd, nil, nil, 1, function(err, res)
         cb(err, res)
     end, nil)
