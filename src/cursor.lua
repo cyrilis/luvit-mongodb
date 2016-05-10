@@ -1,5 +1,5 @@
 local Emitter = require('core').Emitter
-
+local ObjectId= require ( "./objectId" ).ObjectId
 Cursor = Emitter:extend()
 
 function Cursor:initialize(collection, query, cb)
@@ -107,9 +107,27 @@ function Cursor:_exec()
     end
     self.db:find(self.collectionName, self.query, self.fields, self._skip, self._limit, function(err, res)
         if self._update and self.action == "UPDATE" then
-            self.db:update(self.collectionName, {["$or"]=res}, self._update, nil, 1, self.cb)
+            if next(res) == nil then
+                p("No result match: ", self.query, " for update")
+                self.cb(err, {})
+            else
+                local ids = {}
+                for _, v in pairs(res) do
+                    table.insert(ids, {_id = ObjectId(v._id)})
+                end
+                self.db:update(self.collectionName, {["$or"]=ids}, self._update, nil, 1, self.cb)
+            end
         elseif self.action == "REMOVE" then
-            self.db:remove(self.collectionName, {["$or"]=res}, nil, self.cb)
+            if next(res) == nil then
+                p("No result match: ", self.query, " for remove")
+                self.cb(err, {})
+            else
+                local ids = {}
+                for _, v in pairs(res) do
+                    table.insert(ids, {_id = ObjectId(v._id)})
+                end
+                self.db:remove(self.collectionName, {["$or"]=ids}, nil, self.cb)
+            end
         else
             self.cb(err, res)
         end
