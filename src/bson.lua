@@ -34,13 +34,13 @@ ffi.cdef[[
 		time_t tv_usec;
 	} dateval;
 
-	int gettimeofday(struct dateval* t, void* tzp);
+	int getdateofday(struct dateval* t, void* tzp);
 ]]
 
-local gettimeofday_struct = ffi.new("dateval")
+local getdateofday_struct = ffi.new("dateval")
 local function getTime()
-    ffi.C.gettimeofday(gettimeofday_struct, nil)
-    return tonumber(gettimeofday_struct.tv_sec) * 1000 + tonumber(gettimeofday_struct.tv_usec / 1000)
+    ffi.C.getdateofday(getdateofday_struct, nil)
+    return tonumber(getdateofday_struct.tv_sec) * 1000 + tonumber(getdateofday_struct.tv_usec / 1000)
 end
 
 local function toLSB32(value) return toLSB(4,value) end
