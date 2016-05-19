@@ -34,7 +34,7 @@ else
         typedef struct timeval {
             time_t tv_sec;
             time_t tv_usec;
-        } dateval;
+        } timeval;
 
         int gettimeofday(struct timeval* t, void* tzp);
     ]]
