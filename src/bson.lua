@@ -26,7 +26,7 @@ local function toLSB(bytes, value)
 end
 
 local ffi = require("ffi")
-if pcall(ffi.typeof, "struct dateval") then
+if pcall(ffi.typeof, "struct timeval") then
 else
     ffi.cdef[[
         typedef long time_t;
