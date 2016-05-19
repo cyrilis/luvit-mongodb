@@ -61,9 +61,7 @@ end
 
 local function makeObjectId (str)
     if str then
-        if getmetatable ( str ) == object_id_mt then
-            str = tostring(str)
-        end
+        str = tostring(str)
         assert(type(str) == 'string' and #str == 24, 'wrong ObjectId string')
         local t
         local time = tonumber(strsub(str, 1, 8), 16)

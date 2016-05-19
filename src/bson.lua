@@ -26,21 +26,24 @@ local function toLSB(bytes, value)
 end
 
 local ffi = require("ffi")
-ffi.cdef[[
-	typedef long time_t;
+if pcall(ffi.typeof, "struct dateval") then
+else
+    ffi.cdef[[
+        typedef long time_t;
 
- 	typedef struct dateval {
-		time_t tv_sec;
-		time_t tv_usec;
-	} dateval;
+        typedef struct timeval {
+            time_t tv_sec;
+            time_t tv_usec;
+        } dateval;
 
-	int getdateofday(struct dateval* t, void* tzp);
-]]
+        int gettimeofday(struct timeval* t, void* tzp);
+    ]]
+end
 
-local getdateofday_struct = ffi.new("dateval")
+local gettimeofday_struct = ffi.new("timeval")
 local function getTime()
-    ffi.C.getdateofday(getdateofday_struct, nil)
-    return tonumber(getdateofday_struct.tv_sec) * 1000 + tonumber(getdateofday_struct.tv_usec / 1000)
+    ffi.C.gettimeofday(gettimeofday_struct, nil)
+    return tonumber(gettimeofday_struct.tv_sec) * 1000 + tonumber(gettimeofday_struct.tv_usec / 1000)
 end
 
 local function toLSB32(value) return toLSB(4,value) end
@@ -104,6 +107,8 @@ function Date(value)
     end
     return setmetatable({ value = value }, date_meta)
 end
+
+p(Date())
 
 local ll = require("./utils")
 local le_uint_to_num = ll.le_uint_to_num
