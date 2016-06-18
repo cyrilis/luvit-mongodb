@@ -89,11 +89,15 @@ function Collection:ensureIndex(index, cb)
     self:createIndex(index, cb)
 end
 
-function Collection:createIndex(index, cb)
-    -- Todo: create Index
+function Collection:createIndex(index, options, cb)
     local collectionName = self.collectionName
     local indexes
     local name = ""
+
+    if type(options) == "function" then
+      cb = options
+      options = {}
+    end
 
     if type(index) == "string" then
         indexes = index
@@ -110,7 +114,11 @@ function Collection:createIndex(index, cb)
                 name = name .. "_" .. k
             end
         end
-        indexes = {{key = index, name = name}}
+        local indexElem = { key = index, name = name }
+        for k, v in pairs(options) do
+            indexElem[k] = v
+        end
+        indexes = {indexElem}
     end
 
     local cmd = {
