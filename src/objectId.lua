@@ -11,10 +11,7 @@ local strformat = string.format
 local strsub = string.sub
 local t_insert = table.insert
 local t_concat = table.concat
-
-local md5 = require "./md5"
-local hasposix , posix = pcall ( require , "posix" )
-
+local openssl = require("openssl")
 local ll = require ( "./utils" )
 local num_to_le_uint = ll.num_to_le_uint
 local num_to_be_uint = ll.num_to_be_uint
@@ -31,18 +28,13 @@ local object_id_mt = {
     __eq = function ( a , b ) return a.id == b.id end ;
 }
 
-local machineid
-if hasposix then
-    machineid = posix.uname ( "%n" )
-else
-    machineid = assert ( io.popen ( "uname -n" ) ):read ( "*l" )
-end
-machineid = md5.sum ( machineid ):sub ( 1 , 3 )
+local machineid = assert ( io.popen ( "uname -n" ) ):read ( "*l" )
+machineid = openssl.digest.digest("md5", machineid):sub ( 1 , 3 )
 
 local pid = process.pid
 pid = num_to_le_uint ( pid , 2 )
 
-local inc = 0
+local inc = math.floor(math.random() * 1000)
 local function generate_id ()
     inc = inc + 1
     -- "A BSON ObjectID is a 12-byte value consisting of a 4-byte timestamp (seconds since epoch), a 3-byte machine id, a 2-byte process id, and a 3-byte counter. Note that the timestamp and counter fields must be stored big endian unlike the rest of BSON"
@@ -84,8 +76,6 @@ end
 
 return {
     ObjectId = makeObjectId,
-    new = new_object_id ;
+    new = makeObjectId;
     metatable = object_id_mt ;
 }
-
-

@@ -276,6 +276,12 @@ function Mongo:connect()
 
         self:emit("connect")
     end)
+    socket:on("error", function (code)
+        if(code == "ECONNREFUSED") then
+            self:emit("error", code)
+            d(("Database connection failed."):redbg():white())
+        end
+    end)
     self.socket = socket
 end
 
@@ -289,4 +295,3 @@ Mongo.Bit64 = bson.Bit64
 Mongo.Date = bson.Date
 
 return Mongo
-
