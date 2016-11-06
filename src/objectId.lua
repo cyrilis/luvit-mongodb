@@ -54,6 +54,9 @@ end
 local function makeObjectId (str)
     if str then
         str = tostring(str)
+        if not(type(str) == 'string' and #str == 24) then
+            str = object_id_mt.__tostring({id = str})
+        end
         assert(type(str) == 'string' and #str == 24, 'wrong ObjectId string')
         local t
         local time = tonumber(strsub(str, 1, 8), 16)

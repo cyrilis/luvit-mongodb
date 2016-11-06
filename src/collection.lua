@@ -157,12 +157,14 @@ function Collection:findAndModify(query, update, cb)
 end
 
 function Collection:findOne(query, cb)
-    return Cursor:new(self, query):limit(1, function(err, res)
+    assert(cb and type(cb) == "function", "Callback should pass as 2nd param.")
+    return Cursor:new(self, query):limit(1):exec(function (err, res)
         if err then
             cb(err)
             return false
+        else
+            cb(nil, res[1])
         end
-        cb(nil, res[1])
     end)
 end
 
