@@ -25,8 +25,8 @@ local le_int_to_num = function ( s , i , j )
     i , j = i or 1 , j or #s
     local n = le_uint_to_num ( s , i , j )
     local overflow = 2^(8*(j-i) + 7)
-    if n > 2^overflow then
-        n = - ( n % 2^overflow )
+    if n > overflow then
+        n = ( n % overflow ) - overflow
     end
     return n
 end
@@ -152,5 +152,3 @@ return {
     to_double = to_double ;
     from_double = from_double ;
 }
-
-
