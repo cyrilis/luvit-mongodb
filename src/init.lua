@@ -279,7 +279,7 @@ function Mongo:connect()
     socket:on("error", function (code)
         if(code == "ECONNREFUSED") then
             self:emit("error", code)
-            d(("Database connection failed."):redbg():white())
+            print("\x1b[37;41m Database connection failed. \x1b[0m")
         end
     end)
     self.socket = socket
